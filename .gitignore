@@ -1,0 +1,29 @@
+# 含個資，絕對不能進公開 repo
+# 注意：.gitignore 不支援行尾註解，說明一律另起一行，否則整行會被當成比對樣式
+private/
+
+# 抽取原貌，含姓名、訂位代號、租車號碼、人數
+trip_data.json
+
+# 行程內容(每一站的名稱、地址、備註)。這是資料不是設定，
+# 留在公開 repo 等於繞過 docs/index.html 的加密。
+clusters.json
+
+# 完整版產出
+index_mobile.html
+
+# 建置素材（圖片已內嵌進 docs/index.html，不需另外進 repo）
+assets/
+
+# 待加密的明文公開版
+build/
+
+# 加密流程的暫存與測試鷹架（可自行刪除）
+tools/_*
+
+# 一般
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+.claude/

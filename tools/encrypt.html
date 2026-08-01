@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>行程檔加密工具</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:28px 18px 60px;background:#f3f0e9;color:#202421;line-height:1.65;
+ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif}
+.wrap{max-width:640px;margin:auto}
+h1{font-size:1.35rem;margin:0 0 .3rem}
+.sub{color:#5f645f;font-size:.88rem;margin:0 0 22px}
+.card{background:#fffdfa;border:1px solid #ddd7cd;border-radius:16px;padding:20px;margin-bottom:14px}
+label{display:block;font-weight:800;font-size:.85rem;margin-bottom:6px}
+input[type=file],input[type=password]{width:100%;padding:12px;border:1px solid #ddd7cd;border-radius:10px;
+ background:#fff;font-size:1rem;font-family:inherit;min-height:46px}
+input[type=password]{letter-spacing:.06em}
+.row+.row{margin-top:14px}
+button{width:100%;min-height:50px;margin-top:18px;border:0;border-radius:12px;background:#8a5d2c;color:#fff;
+ font-weight:900;font-size:1rem;cursor:pointer}
+button:disabled{background:#c3bcb0;cursor:not-allowed}
+.meter{height:6px;border-radius:99px;background:#e6e0d6;margin-top:8px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;transition:.2s}
+.hint{font-size:.78rem;color:#5f645f;margin-top:6px}
+.bad{color:#a33}.ok{color:#2f6b4f}
+.log{background:#1d2622;color:#d7e2db;border-radius:12px;padding:14px;font-size:.8rem;
+ white-space:pre-wrap;word-break:break-all;margin-top:14px;display:none;font-family:ui-monospace,monospace}
+ol{padding-left:1.2rem;font-size:.86rem;color:#5f645f}
+ol li{margin:.35rem 0}
+code{background:#efe9df;padding:1px 5px;border-radius:5px;font-size:.85em}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>行程檔加密工具</h1>
+<p class="sub">在你自己的瀏覽器裡完成，密碼不會送到任何地方。產出的檔案是自足單檔，沒有密碼就只是一堆密文。</p>
+
+<div class="card">
+  <div class="row">
+    <label for="f">1. 選擇要加密的行程檔</label>
+    <input type="file" id="f" accept=".html,.htm">
+    <p class="hint" id="fh">選 <code>index_mobile.html</code>(完整版)。</p>
+  </div>
+  <div class="row">
+    <label for="p1">2. 設定密碼</label>
+    <input type="password" id="p1" autocomplete="new-password" placeholder="建議 12 字以上，用一句好記的話">
+    <div class="meter"><i id="mtr"></i></div>
+    <p class="hint" id="ph">密碼強度決定一切。純數字或短密碼會被離線暴力破解。</p>
+  </div>
+  <div class="row">
+    <label for="p2">3. 再輸入一次</label>
+    <input type="password" id="p2" autocomplete="new-password">
+    <p class="hint" id="ph2"></p>
+  </div>
+  <button id="go" disabled>加密並下載</button>
+  <div class="log" id="log"></div>
+</div>
+
+<div class="card">
+  <b style="font-size:.9rem">產出之後</b>
+  <ol>
+    <li>下載到的 <code>index.html</code> 放進 <code>docs/</code>，覆蓋原本那份</li>
+    <li><code>git add docs/index.html &amp;&amp; git commit &amp;&amp; git push</code></li>
+    <li>手機開 GitHub Pages 網址，輸入密碼即可；可勾「在這台裝置記住」免得每次都打</li>
+    <li>密碼只有你知道，忘了沒有救援方式，要重新加密一份</li>
+  </ol>
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const enc = new TextEncoder();
+let fileText = null;
+
+// 必須分塊：行程檔約 750KB，String.fromCharCode(...) 一次展開 75 萬個參數會爆呼叫堆疊
+function b64(buf) {
+  const u = new Uint8Array(buf);
+  const CHUNK = 0x8000;
+  let s = '';
+  for (let i = 0; i < u.length; i += CHUNK) s += String.fromCharCode.apply(null, u.subarray(i, i + CHUNK));
+  return btoa(s);
+}
+
+function strength(p) {
+  let s = 0;
+  if (p.length >= 8) s++;
+  if (p.length >= 12) s++;
+  if (p.length >= 16) s++;
+  if (/[a-z]/.test(p) && /[A-Z]/.test(p)) s++;
+  if (/\d/.test(p)) s++;
+  if (/[^\w\s]/.test(p)) s++;
+  if (/^\d+$/.test(p)) s = Math.min(s, 1);
+  return Math.min(s, 5);
+}
+
+function refresh() {
+  const p1 = $('p1').value, p2 = $('p2').value;
+  const s = strength(p1);
+  const colors = ['#c33', '#c33', '#d88', '#d9a441', '#6a9b4f', '#2f6b4f'];
+  const words = ['太弱', '太弱', '偏弱', '普通', '不錯', '很好'];
+  $('mtr').style.width = (s / 5 * 100) + '%';
+  $('mtr').style.background = colors[s];
+  $('ph').textContent = p1 ? '強度：' + words[s] + (s < 3 ? '　— 再長一點，或改成一整句話' : '') : '密碼強度決定一切。純數字或短密碼會被離線暴力破解。';
+  $('ph').className = 'hint ' + (p1 ? (s < 3 ? 'bad' : 'ok') : '');
+  const match = p1 && p1 === p2;
+  $('ph2').textContent = p2 ? (match ? '兩次一致' : '兩次不一致') : '';
+  $('ph2').className = 'hint ' + (p2 ? (match ? 'ok' : 'bad') : '');
+  $('go').disabled = !(fileText && match && p1.length >= 8);
+}
+
+$('f').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) { fileText = null; refresh(); return; }
+  fileText = await file.text();
+  $('fh').textContent = file.name + '　' + Math.round(file.size / 1024) + ' KB';
+  $('fh').className = 'hint ok';
+  refresh();
+});
+['p1', 'p2'].forEach(id => $(id).addEventListener('input', refresh));
+
+$('go').addEventListener('click', async () => {
+  const log = m => { $('log').style.display = 'block'; $('log').textContent += m + '\n'; };
+  $('log').textContent = ''; $('go').disabled = true;
+  try {
+    const pw = $('p1').value;
+    const ITER = 310000;
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    log('導出金鑰 PBKDF2-SHA256 × ' + ITER.toLocaleString() + ' …');
+    const base = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt, iterations: ITER, hash: 'SHA-256' },
+      base, { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
+    log('AES-GCM 加密中 …');
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(fileText));
+    const payload = { v: 1, iter: ITER, salt: b64(salt), iv: b64(iv), ct: b64(ct) };
+    log('明文 ' + Math.round(fileText.length / 1024) + ' KB → 密文 ' + Math.round(payload.ct.length / 1024) + ' KB');
+    const out = SHELL.replace('__PAYLOAD__', JSON.stringify(payload));
+    const blob = new Blob([out], { type: 'text/html' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'index.html'; a.click();
+    URL.revokeObjectURL(a.href);
+    log('完成，已下載 index.html（' + Math.round(out.length / 1024) + ' KB）');
+    log('把它放進 docs/ 覆蓋舊檔後 push。');
+  } catch (err) {
+    log('失敗：' + err.message);
+  }
+  $('go').disabled = false;
+});
+
+const SHELL = `<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#263c36"><meta name="robots" content="noindex,nofollow">
+<title>行程</title><link rel="manifest" href="manifest.webmanifest"><style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;
+background:#f3f0e9;color:#202421;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif}
+@media(prefers-color-scheme:dark){body{background:#0d1210;color:#f4f7f4}
+.box{background:#161d1a!important;border-color:#33403a!important}
+input{background:#0d1210!important;color:#f4f7f4!important;border-color:#33403a!important}}
+.box{width:100%;max-width:360px;background:#fffdfa;border:1px solid #ddd7cd;border-radius:18px;padding:26px 22px;text-align:center}
+h1{font-size:1.1rem;margin:0 0 4px}p{margin:0 0 18px;font-size:.82rem;color:#6d726e}
+input{width:100%;padding:13px;border:1px solid #ddd7cd;border-radius:11px;font-size:1rem;min-height:48px;font-family:inherit}
+button{width:100%;min-height:48px;margin-top:12px;border:0;border-radius:11px;background:#8a5d2c;color:#fff;font-weight:900;font-size:.95rem;cursor:pointer}
+button:disabled{opacity:.6}
+.rem{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.8rem;color:#6d726e;justify-content:center}
+.rem input{width:auto;min-height:auto;margin:0}
+.err{color:#c33;font-size:.82rem;margin-top:10px;min-height:1.2em}
+.loading{display:none;font-size:.86rem;color:#6d726e;padding:8px 0}
+html.auto .form,html.auto .lead{display:none}
+html.auto .loading{display:block}
+</style></head><body>
+<div class="box"><h1>行程</h1><p class="lead">需要密碼</p>
+<div class="loading">解鎖中…</div>
+<div class="form">
+<input type="password" id="pw" autocomplete="current-password" placeholder="密碼">
+<button id="go">開啟</button>
+<label class="rem"><input type="checkbox" id="rem"> 在這台裝置記住</label>
+<div class="err" id="err"></div></div></div>
+<script>
+const P=__PAYLOAD__;
+const d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const K='sendai2026:key';
+// 記住金鑰時先把表單藏起來顯示「解鎖中」，避免閃一下密碼框
+if(localStorage.getItem(K))document.documentElement.classList.add('auto');
+async function derive(pw){
+ const b=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+ return crypto.subtle.deriveKey({name:'PBKDF2',salt:d(P.salt),iterations:P.iter,hash:'SHA-256'},
+  b,{name:'AES-GCM',length:256},true,['decrypt']);
+}
+async function open_(key){
+ const buf=await crypto.subtle.decrypt({name:'AES-GCM',iv:d(P.iv)},key,d(P.ct));
+ const html=new TextDecoder().decode(buf);
+ // 不用 document.write：它在不同時機的行為不一致，實測會把解密內容併進鎖定頁而不是取代。
+ // 改成直接換掉 documentElement，行為明確。
+ const doc=new DOMParser().parseFromString(html,'text/html');
+ document.replaceChild(document.importNode(doc.documentElement,true),document.documentElement);
+ // DOMParser 產生的 script 不會執行，逐一重建才會跑
+ document.querySelectorAll('script').forEach(function(old){
+  const s=document.createElement('script');
+  for(const a of old.attributes)s.setAttribute(a.name,a.value);
+  s.textContent=old.textContent;
+  old.parentNode.replaceChild(s,old);
+ });
+}
+document.getElementById('go').onclick=async()=>{
+ const e=document.getElementById('err'),btn=document.getElementById('go');
+ e.textContent='';btn.disabled=true;btn.textContent='解密中…';
+ try{
+  const key=await derive(document.getElementById('pw').value);
+  if(document.getElementById('rem').checked){
+   const raw=await crypto.subtle.exportKey('raw',key);
+   localStorage.setItem(K,btoa(String.fromCharCode(...new Uint8Array(raw))));
+  }
+  await open_(key);
+ }catch(_){
+  e.textContent='密碼不對';btn.disabled=false;btn.textContent='開啟';
+  localStorage.removeItem(K);
+ }
+};
+document.getElementById('pw').addEventListener('keydown',ev=>{if(ev.key==='Enter')document.getElementById('go').click();});
+// 必須等 load：文件還在解析時呼叫 document.write 會把解密內容併進現有頁面，
+// 而不是取代它，結果密碼框和行程會同時出現。
+window.addEventListener('load',async()=>{
+ const s=localStorage.getItem(K);
+ if(!s)return;
+ try{
+  const key=await crypto.subtle.importKey('raw',d(s),{name:'AES-GCM'},true,['decrypt']);
+  await open_(key);
+ }catch(_){
+  localStorage.removeItem(K);
+  document.documentElement.classList.remove('auto');
+ }
+});
+<\/script></body></html>`;
+</script>
+</body>
+</html>

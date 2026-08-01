@@ -1,0 +1,8 @@
+{
+  "name": "行程",
+  "short_name": "行程",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f3f0e9",
+  "theme_color": "#263c36"
+}
