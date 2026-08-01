@@ -219,6 +219,11 @@ document.getElementById('go').onclick=async()=>{
  }
 };
 document.getElementById('pw').addEventListener('keydown',ev=>{if(ev.key==='Enter')document.getElementById('go').click();});
+// 離線快取要在鎖定殼層就註冊，不能只放在解密後的內容裡：
+// 否則沒解過鎖的裝置完全沒有快取，離線時整頁打不開。
+if(location.protocol==='https:'&&'serviceWorker'in navigator){
+ navigator.serviceWorker.register('sw.js').catch(function(){});
+}
 // 必須等 load：文件還在解析時呼叫 document.write 會把解密內容併進現有頁面，
 // 而不是取代它，結果密碼框和行程會同時出現。
 window.addEventListener('load',async()=>{
