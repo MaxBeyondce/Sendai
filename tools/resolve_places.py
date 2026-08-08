@@ -56,12 +56,19 @@ def main() -> None:
     places = doc["places"]
     by_q = {norm_q(r["q"]): r for r in res["looked_up"]}
     short = res.get("short", {})
+    by_id = res.get("by_id", {})
 
     rows, unresolved = [], []
     for pid, p in places.items():
         before = p["name"]["jp"]
-        r = short.get(pid)
+        rename = None
+        r = by_id.get(pid)
         if r:
+            # 用 key 對應而不是查詢字串 — 有些是用更精準的查詢重查的，字串對不起來。
+            src = r.get("src", "直接命中")
+            name, coord, gid = r["name"], r.get("coord", ""), r.get("pid", "")
+            alts, rej, rename = [], "", r.get("rename")
+        elif (r := short.get(pid)):
             src, name, coord, gid, alts, rej = "短網址", r["name"], r["coord"], "", [], ""
         else:
             r = by_q.get(norm_q(p.get("query", "")))
@@ -77,13 +84,14 @@ def main() -> None:
             rows.append((pid, before, name, "不採用", rej, alts))
             continue
 
-        verified = ("place_id" if gid else "coords") if src != "清單第一筆" else "review"
-        if src == "短網址":
-            verified = "coords"
+        verified = "review" if src == "清單第一筆" else ("place_id" if gid else "coords")
         rows.append((pid, before, name, src, verified, alts))
 
         if args.write:
             p["name"]["jp"] = name
+            if rename:
+                # 來源寫錯名字的情況：三個語言欄位一起換掉，不只換日文那一欄。
+                p["name"].update(rename)
             if not p["name"]["zh"]:
                 p["name"]["zh"] = name
             if coord:
