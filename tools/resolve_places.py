@@ -88,6 +88,12 @@ def main() -> None:
         rows.append((pid, before, name, src, verified, alts))
 
         if args.write:
+            pk = res.get("parking", {}).get(pid)
+            if pk:
+                # 逐家實查的停車資訊。kind=lot 有確定可停的場；
+                # kind=search 代表周邊只有月租或需預約的，改用座標為中心的即時搜尋 —
+                # 把月租場當成可停的地方推出去，比沒有按鈕更糟。
+                p["parking_hint"] = pk
             p["name"]["jp"] = name
             if rename:
                 # 來源寫錯名字的情況：三個語言欄位一起換掉，不只換日文那一欄。
