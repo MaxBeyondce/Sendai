@@ -21,6 +21,18 @@ build/
 # 加密流程的暫存與測試鷹架（可自行刪除）
 tools/_*
 
+# 來源檔（v3 說明 md、購物清單 html）已搬進 private/raw/。
+# 這一行是防呆：萬一 raw/ 又被建回根目錄，也不會因為少寫一行而漏出去。
+raw/
+
+# 由工具產生的行程內容：地名與座標、逐點說明、購物品項。
+# 跟 clusters.json 同理 — 這是資料不是設定，留在公開 repo 等於繞過加密。
+places.json
+guide.json
+guide_overrides.json
+shopping.json
+shopping_overrides.json
+
 # 一般
 __pycache__/
 *.pyc

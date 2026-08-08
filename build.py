@@ -1,10 +1,11 @@
 """從 trip_data.json + clusters.json 產出兩個自足單檔 HTML。
 
-  完整版  -> H:\\我的雲端硬碟\\index_mobile.html      (保留姓名、訂位代號、租車號碼、人數)
-  遮蔽版  -> docs/index.html                        (公開 repo 用，個資全部拿掉)
+  單檔版  -> H:\\我的雲端硬碟\\index_mobile.html      (本機直接開，不掛 manifest)
+  發布版  -> build/public_plain.html                (加密後成為 docs/index.html)
 
-兩版同源，改資料只改 json，不手改 html。
-遮蔽版產出後會自動掃描，掃不過就中止不寫檔。
+兩份內容完全一樣，差別只有掛不掛 manifest 與加不加密。
+個資兩份都不寫，跑同一套遮蔽與同一套掃描；任何一份掃不過就中止不寫檔。
+改資料只改 json，不手改 html。
 """
 
 from __future__ import annotations
@@ -43,15 +44,14 @@ D5_PLAN_A = {"Plan A", "10:00", "午餐"}
 D5_PLAN_B = {"Plan B"}
 
 # 遮蔽對照本身就含個資，不能寫在這一檔(build.py 會進公開 repo)。
-# private/ 被 .gitignore 排除；讀不到就不產遮蔽版，寧可 build 失敗也不要漏出去。
+# private/ 被 .gitignore 排除；讀不到就不產出，寧可 build 失敗也不要漏出去。
+# 2026-08-08：兩個產出跑同一組替換與同一組禁用字，不再有「完整版可以留」的例外。
 PRIVATE = ROOT / "private" / "redactions.json"
 if not PRIVATE.exists():
-    sys.exit(f"找不到 {PRIVATE}；沒有遮蔽對照就不產遮蔽版，已中止。")
+    sys.exit(f"找不到 {PRIVATE}；沒有遮蔽對照就不產出，已中止。")
 _priv = json.loads(PRIVATE.read_text(encoding="utf-8"))
-ALWAYS = [tuple(x) for x in _priv["always"]]            # 兩版都套用(訂位代號、姓名 — 已外洩)
-PUBLIC_ONLY = [tuple(x) for x in _priv["public_only"]]  # 只有公開版套用(人數)
+REPLACE = [tuple(x) for x in _priv["replace"]]  # 順序有意義：前面套過的會影響後面比對
 FORBIDDEN = _priv["forbidden"]
-FORBIDDEN_ALWAYS = _priv["forbidden_always"]
 
 E = html.escape
 
@@ -198,7 +198,9 @@ def stop_html(day_id: str, idx: int, s: dict) -> str:
     return "".join(out)
 
 
-def build_html(redact: bool) -> str:
+def build_html(standalone: bool) -> str:
+    """standalone=True 為本機單檔版(不掛 manifest)；False 為要加密發布的版本。
+    內容不因這個旗標而不同 — 個資兩份都不寫。"""
     img = ""
     if DATA.get("image") and (ASSETS / DATA["image"]).exists():
         b64 = base64.b64encode((ASSETS / DATA["image"]).read_bytes()).decode()
@@ -280,14 +282,11 @@ def build_html(redact: bool) -> str:
              '<button id="topBtn" title="回頂部">↑</button></div>')
 
     body = "".join(p)
-    for a, b in ALWAYS:
+    for a, b in REPLACE:
         body = body.replace(E(a), E(b)).replace(a, b)
-    if redact:
-        for a, b in PUBLIC_ONLY:
-            body = body.replace(E(a), E(b)).replace(a, b)
 
     # manifest 只有 Pages 版用得到，單檔離線版沒有這個外部檔，不掛連結避免 404
-    manifest = '<link rel="manifest" href="manifest.webmanifest">' if redact else ""
+    manifest = "" if standalone else '<link rel="manifest" href="manifest.webmanifest">'
     # 「跳到今天」的日期對照表在這裡產生。日期只會出現在產出的 HTML(會被加密)，
     # 不會留在 build.py 這種要進公開 repo 的原始碼裡。
     js = JS.replace("__DAYMAP__", json.dumps(day_map(), ensure_ascii=False))
@@ -553,17 +552,18 @@ JS = r"""
 def main() -> None:
     DOCS.mkdir(exist_ok=True)
 
-    full = build_html(redact=False)
-    bad = [w for w in FORBIDDEN_ALWAYS if w in full]
+    # 兩份跑同一組禁用字。單檔版先掃過才寫，掃不過連本機那份都不產。
+    full = build_html(standalone=True)
+    bad = [w for w in FORBIDDEN if w in full]
     if bad:
-        sys.exit(f"完整版仍含已外洩的訂位代號／姓名：{bad}；已中止")
+        sys.exit(f"單檔版個資掃描未通過：{bad}；已中止")
     DRIVE_OUT.parent.mkdir(parents=True, exist_ok=True)
     DRIVE_OUT.write_text(full, encoding="utf-8")
 
-    pub = build_html(redact=True)
+    pub = build_html(standalone=False)
     bad = [w for w in FORBIDDEN if w in pub]
     if bad:
-        sys.exit(f"個資掃描未通過：{bad}；已中止")
+        sys.exit(f"發布版個資掃描未通過：{bad}；已中止")
     # 明文公開版寫到 build/(已 gitignore)，當作加密工具的輸入。
     # 絕對不直接寫 docs/index.html — 那是加密後的成品，重跑 build 會把它蓋成明文。
     BUILD.mkdir(exist_ok=True)
@@ -591,12 +591,13 @@ def main() -> None:
         ".catch(()=>caches.match('./index.html'))))});\n", encoding="utf-8")
 
     n_routes = sum(len(re.findall(r'class="rbtn', s)) for s in [full])
-    print(f"完整版   -> {DRIVE_OUT}  ({len(full.encode()) // 1024} KB)")
+    print(f"單檔版   -> {DRIVE_OUT}  ({len(full.encode()) // 1024} KB)  個資掃描通過")
     print(f"待加密版 -> {BUILD / 'public_plain.html'}  ({len(pub.encode()) // 1024} KB)  個資掃描通過")
     print(f"路線按鈕 {n_routes} 顆；步行群組 {len(CLUSTERS)} 組")
     print()
-    print("docs/index.html 沒有被動到。要更新公開版，用 tools/encrypt.html 把上面兩份之一")
-    print("加密後另存成 docs/index.html。")
+    print("docs/index.html 沒有被動到。要更新公開版，用 tools/encrypt.html 加密")
+    print(f"{BUILD / 'public_plain.html'} 後另存成 docs/index.html。")
+    print("(兩份內容一樣，但發布請一律用待加密版 — 它掛了 manifest)")
 
 
 if __name__ == "__main__":
