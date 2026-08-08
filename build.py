@@ -32,16 +32,10 @@ MAX_PER_LEG = 5
 # Google Maps 其他平台上限 9 個中繼點 -> 單一連結最多 11 站
 MAX_SINGLE = 11
 
-# 這些列不是可導航的地點(候選清單、移動動作、看即時影像)，不進當日路線
-ROUTE_SKIP = {
-    ("D2", "12:30"), ("D4", "14:20–15:45"), ("D4", "晚間可選"),
-    ("D5", "早餐時"), ("D5", "午餐"),
-    ("D6", "早餐"), ("D6", "晚餐前"),
-    ("D7", "09:40"), ("D7", "11:30"), ("D7", "12:30"), ("D7", "13:00 前後"), ("D7", "16:05"),
-}
-# D5 有 Plan A / Plan B 兩條分支，不併成一條
-D5_PLAN_A = {"Plan A", "10:00", "午餐"}
-D5_PLAN_B = {"Plan B"}
+# 哪些列不進當日路線(候選清單、移動動作、看即時影像)，以及哪一天有分支，
+# 都由資料上的 stop.route / stop.branch 決定，不寫在這裡。
+# 原本是寫死的常數，但那等於把行程時段與標籤留在會進公開 repo 的原始碼裡，
+# 而 tools/_final_scan.py 原本的字面清單看不到「時段」這種形狀(現已補上正則)。
 
 # 遮蔽對照本身就含個資，不能寫在這一檔(build.py 會進公開 repo)。
 # private/ 被 .gitignore 排除；讀不到就不產出，寧可 build 失敗也不要漏出去。
@@ -131,19 +125,17 @@ def route_block(stops: list[dict], mode: str, label: str, note: str = "") -> str
 
 
 def day_routes(day: dict) -> str:
-    """當日開車路線；D5 分 Plan A / Plan B 兩條。"""
-    did = day["id"]
-    usable = [s for s in day["stops"]
-              if s.get("query") and (did, s["time"]) not in ROUTE_SKIP]
-    if did == "D5":
-        a = [s for s in usable if s["time"] not in D5_PLAN_B]
-        b = [s for s in usable if s["time"] not in D5_PLAN_A]
-        # 標籤不寫地名：build.py 會進公開 repo，地名只能存在於加密後的內容裡
-        return (route_block(a, "driving", "Plan A｜當日開車路線")
-                + route_block(b, "driving", "Plan B｜當日開車路線"))
-    if did in ("D6", "D7"):
-        return ""  # 這兩天是步行與大眾運輸，路線走群組
-    return route_block(usable, "driving", "當日開車路線")
+    """當日開車路線；有分支的日子分成兩條，不併成一條。"""
+    if not day.get("drive", True):
+        return ""  # 這一天沒有車，路線走群組(步行／大眾運輸)
+    usable = [s for s in day["stops"] if s.get("query") and s.get("route", True) is not False]
+    if not any(s.get("branch") for s in day["stops"]):
+        return route_block(usable, "driving", "當日開車路線")
+    a = [s for s in usable if s.get("branch") != "B"]
+    b = [s for s in usable if s.get("branch") != "A"]
+    # 標籤不寫地名：build.py 會進公開 repo，地名只能存在於加密後的內容裡
+    return (route_block(a, "driving", "Plan A｜當日開車路線")
+            + route_block(b, "driving", "Plan B｜當日開車路線"))
 
 
 def cluster_for(day_id: str, time: str) -> dict | None:
