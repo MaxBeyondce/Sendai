@@ -48,8 +48,7 @@ def day_routes(day: dict) -> str:
     b = [s for s in usable if s.get("branch") != "A"]
     # 包成一個有標頭的容器。兩塊並排時看不出是二選一，
     # 而這是整天走哪條路的分歧 — 跟單點的「候選」不是同一件事。
-    return ('<div class="branch"><div class="brhead">🌤 整天二選一'
-            '<span>兩條路線挑一條走，不是先後順序</span></div>'
+    return ('<div class="branch"><div class="brhead">🌤 整天二選一</div>'
             + route_block(a, "driving", "Plan A｜當日開車路線")
             + route_block(b, "driving", "Plan B｜當日開車路線")
             + "</div>")

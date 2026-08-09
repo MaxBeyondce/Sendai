@@ -74,13 +74,7 @@ def picks_html(stop: dict, want_parking: bool, places_by_id: dict) -> str:
     ents, choice = candidates(stop)
     if len(ents) < 2:
         return ""
-    head = ("候選——挑一家" if choice else "這一站包含")
-    note = ("A–{} 是這個時段的候選，挑一家就好；跟整天二選一的 Plan A／Plan B"
-            "（走哪條路線）不是同一件事。".format(LETTERS[len(ents) - 1])) if choice else ""
-    out = [f'<div class="picks"><div class="pickhead"><b>{head}·{len(ents)}</b>']
-    if note:
-        out.append(f"<p>{E(note)}</p>")
-    out.append("</div>")
+    out = [f'<div class="picks{" choice" if choice else ""}">']
     for i, e in enumerate(ents):
         out.append(pick_html(i, e, places_by_id.get(e.get("id")), want_parking))
     out.append("</div>")

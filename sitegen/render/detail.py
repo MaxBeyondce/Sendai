@@ -70,7 +70,12 @@ def _body(e: dict) -> list[str]:
     for fd in e.get("fields") or []:
         if fd["k"] in ALWAYS or fd["k"] == GOAL or fd["k"] in PARK_FIELDS:
             continue
-        out.append(f'<div class="fld"><b>{E(fd["k"])}</b><span>{E(fd["v"])}</span></div>')
+        v = (fd["v"] or "").strip()
+        if not v:
+            continue  # 來源有欄位是空的，留著只會多一條空行
+        # 只印內容不印欄位名。「角色」「定位」這些是來源 md 的結構標籤，
+        # 不是給人讀的字，而值本身已經是完整句子。
+        out.append(f'<p class="fld">{E(v)}</p>')
     bl = e.get("bullets") or []
     if bl:
         out.append("<ul>" + "".join(f"<li>{E(b)}</li>" for b in bl) + "</ul>")
@@ -93,7 +98,7 @@ def detail_html(entries: list[dict], children: list[dict] | None = None) -> str:
         b = _body(e)
         if not b:
             continue
-        n += len([x for x in b if x.startswith('<div class="fld"')])
+        n += len([x for x in b if x.startswith('<p class="fld"')])
         n += sum(x.count("<li>") for x in b)
         n += len([x for x in b if x.startswith('<p class="sub"')])
         parts.extend(b)

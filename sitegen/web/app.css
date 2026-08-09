@@ -111,7 +111,7 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 .droutes{padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);background:var(--chip)}
 .routegrp+.routegrp{margin-top:var(--s3);padding-top:var(--s3);border-top:1px dashed var(--line)}
 .branch{border:2px solid var(--accent);border-radius:12px;padding:var(--s3);background:var(--paper)}
-.brhead{display:flex;flex-direction:column;gap:2px;margin-bottom:var(--s3);
+.brhead{margin-bottom:var(--s3);
  font-size:var(--fs2);font-weight:700;color:var(--accent-text)}
 .brhead span{font-weight:400;font-size:var(--fs0);color:var(--muted)}
 .routelabel{display:flex;align-items:center;gap:var(--s2);font-weight:700;font-size:var(--fs2);margin-bottom:var(--s2)}
@@ -181,11 +181,8 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 .detail[open]>summary::after{content:"▴"}
 .detail .dbody{margin-top:var(--s2);padding:var(--s3);background:var(--chip);
  border:1px solid var(--line);border-radius:12px;font-size:var(--fs2)}
-.detail .fld{display:flex;gap:var(--s2);padding:5px 0;border-bottom:1px dashed var(--line)}
-.detail .fld:last-of-type{border-bottom:0}
-.detail .fld b{flex:0 0 auto;min-width:4.5em;max-width:40%;font-weight:500;color:var(--muted);
- font-size:var(--fs1);overflow-wrap:anywhere}
-.detail .fld span{min-width:0;overflow-wrap:anywhere}
+.detail .fld{margin:0 0 var(--s2);overflow-wrap:anywhere}
+.detail .fld:last-of-type{margin-bottom:0}
 /* 子條目：標題獨立成行，長店名照常折行不會撐寬容器 */
 .detail .kid{margin-top:var(--s2);padding-top:var(--s2);border-top:1px dashed var(--line)}
 .detail .kid>b{display:block;font-size:var(--fs1);overflow-wrap:anywhere}
@@ -215,9 +212,6 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 /* ── 候選手風琴（一次開一個）────────────────────────────────────
    8 段的分段選擇器在 375px 下每段只有 47px，中文標籤放不進去。 */
 .picks{margin-top:var(--s3);border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--paper)}
-.pickhead{padding:var(--s2) var(--s3);background:var(--chip);border-bottom:1px solid var(--line)}
-.pickhead b{font-size:var(--fs2)}
-.pickhead p{margin:2px 0 0;font-size:var(--fs0);color:var(--muted);line-height:1.5}
 .pick{border-bottom:1px solid var(--line)}
 .pick:last-child{border-bottom:0}
 .pick>summary{display:flex;align-items:center;gap:var(--s2);min-height:50px;padding:0 var(--s3);
@@ -228,6 +222,8 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 .pick[open]>summary::after{content:"▴"}
 .pick .ltr{flex:0 0 auto;width:24px;height:24px;border-radius:8px;background:var(--dark);color:#fff;
  display:flex;align-items:center;justify-content:center;font-size:var(--fs0);font-weight:700}
+/* 挑一家的用強調色、都會去的用深色。這是標示不是說明，不佔任何一行字。 */
+.picks.choice .ltr{background:var(--accent);color:var(--accent-ink)}
 .pick .pn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pickbody{padding:var(--s3);border-top:1px solid var(--line)}
 .pickbody .salt{margin:0 0 var(--s2)}
