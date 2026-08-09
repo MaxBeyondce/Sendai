@@ -43,7 +43,7 @@ b,strong{font-weight:700}
  backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
 .tabs{flex:0 0 auto;display:flex;gap:var(--s1);padding:3px;background:var(--chip);
  border:1px solid var(--line);border-radius:12px}
-.tab{position:relative;min-height:38px;padding:0 10px;border:0;border-radius:9px;background:transparent;
+.tab{position:relative;min-height:44px;padding:0 12px;border:0;border-radius:9px;background:transparent;
  color:var(--muted);font-size:var(--fs1);font-weight:700;cursor:pointer;font-family:inherit}
 .tab[aria-selected=true]{background:var(--dark);color:#fff}
 /* 篩選中的小圓點 — 篩選永遠不會靜默藏資料 */
@@ -99,6 +99,8 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 .dhead h2{margin:var(--s2) 0 0;font-size:var(--fs5);line-height:1.3}
 .anchor{margin:var(--s2) 0 0;color:var(--muted);font-size:var(--fs2)}
 .stay{margin:var(--s2) 0 0;font-size:var(--fs2)}
+.stay a{display:inline-block;padding:10px 10px;margin:0 -2px;border-radius:8px;
+ background:var(--chip);border:1px solid var(--line);text-decoration:none;font-weight:500}
 .prog{display:flex;align-items:center;gap:var(--s2);margin-top:var(--s3)}
 .prog .bar{flex:1;height:6px;background:var(--line);border-radius:999px;overflow:hidden}
 .prog .bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .25s}
@@ -128,8 +130,10 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 .stop{display:flex;gap:var(--s3);padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);position:relative}
 .stop:last-child{border-bottom:0}
 .tick{position:absolute;opacity:0;width:0;height:0}
-.tickbox{flex:0 0 auto;width:26px;height:26px;margin-top:2px;border:2px solid var(--line);
- border-radius:8px;cursor:pointer;display:block}
+.tickbox{position:relative;flex:0 0 auto;width:28px;height:28px;margin-top:2px;
+ border:2px solid var(--line);border-radius:8px;cursor:pointer;display:block}
+/* 視覺 28px，可點範圍 44px。撐開的是 ::after 不是自己，所以不動版面。 */
+.tickbox::after{content:"";position:absolute;inset:-8px}
 .tick:checked+.tickbox{background:var(--ok);border-color:var(--ok);
  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg>");
  background-size:18px;background-position:center;background-repeat:no-repeat}
@@ -167,7 +171,7 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 
 /* 詳細收合。數字讓人知道值不值得點；沒有內容就不長這顆鈕。 */
 .detail{margin-top:var(--s2)}
-.detail>summary{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 var(--s3);
+.detail>summary{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 var(--s4);
  border:1px solid var(--line);border-radius:999px;background:var(--paper);
  font-size:var(--fs1);font-weight:700;color:var(--accent-text);cursor:pointer;list-style:none}
 .detail>summary::-webkit-details-marker{display:none}
@@ -189,8 +193,8 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 
 .cluster{margin-top:var(--s3);padding:var(--s3);border:1px solid var(--line);border-radius:12px;background:var(--chip)}
 .clhead{font-size:var(--fs0);color:var(--muted);font-weight:700;margin-bottom:var(--s2)}
-.chips{margin:0;padding-left:1.3rem;display:grid;gap:6px;font-size:var(--fs2)}
-.chips a{font-weight:500}
+.chips{margin:0;padding-left:1.3rem;display:grid;gap:2px;font-size:var(--fs2)}
+.chips a{display:inline-block;font-weight:500;padding:11px 6px;margin:0 -6px;border-radius:8px}
 .cmemo{display:block;color:var(--muted);font-size:var(--fs0)}
 .cwarn{margin-left:6px;font-size:var(--fs0);color:var(--warn);font-weight:700}
 
@@ -246,7 +250,8 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
  background:linear-gradient(180deg,var(--chip),transparent)}
 .shopstore h2{margin:0;font-size:var(--fs4);display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap}
 .shopstore .days{font-size:var(--fs0);font-weight:400;color:var(--accent-text)}
-.shopstore .days a{text-decoration:none;border-bottom:1px dotted currentColor}
+.shopstore .days a{display:inline-block;padding:10px 10px;margin:-4px 0;border-radius:8px;
+ text-decoration:none;background:var(--chip);border:1px solid var(--line)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--s3);padding:var(--s3)}
 .it{position:relative;display:flex;flex-direction:column;gap:6px;
  content-visibility:auto;contain-intrinsic-size:0 260px}
