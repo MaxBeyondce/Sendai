@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import unquote
 
-from ..data import PLACES, cluster_for
+from ..data import PLACES, children_of, cluster_for
 from ..maps import search_url
 from .detail import detail_html, goal_html, names_html, parking_buttons, tags_html
 from .plans import candidates, picks_html
@@ -36,7 +36,11 @@ def stop_html(day_id: str, idx: int, s: dict, want_parking: bool) -> str:
     out.append(goal_html(own))
     if s.get("memo"):
         out.append(f'<p class="smemo">{E(s["memo"])}</p>')
-    out.append(detail_html(own))
+    # 父條目底下的子項要一起收進詳細。只有 kind=group 的父條目其子項會變成
+    # 候選手風琴；父條目是一個實際地點時，子項是它裡面的小點，
+    # 不能當成「挑一家」，但也不能就這樣消失。
+    kids = [k for e in own for k in children_of(e)]
+    out.append(detail_html(own, kids))
 
     if s.get("parking"):
         out.append('<div class="parks">')
@@ -57,7 +61,15 @@ def stop_html(day_id: str, idx: int, s: dict, want_parking: bool) -> str:
             memo = f'<span class="cmemo">{E(c["memo"])}</span>' if c.get("memo") else ""
             warn = f'<span class="cwarn">{tag}</span>' if tag else ""
             out.append(f'<li><a href="{E(search_url(c["query"], c.get("place")))}" target="_blank" rel="noopener">'
-                       f'{E(c["name"])}{warn}</a>{memo}</li>')
+                       f'{E(c["name"])}{warn}</a>{memo}')
+            # 群組成員也是站點，它們的逐點說明一樣要出得來。
+            # data.attach() 已經把說明掛上去了，這裡少讀就等於整批不見。
+            ce = c.get("guide") or []
+            if ce:
+                ct, _ = tags_html(ce)
+                out.append(ct)
+                out.append(detail_html(ce, [k for e in ce for k in children_of(e)]))
+            out.append("</li>")
         out.append("</ol>")
         out.append(route_block(cl["stops"], cl["mode"], cl["label"], cl.get("note", "")))
         out.append("</div>")

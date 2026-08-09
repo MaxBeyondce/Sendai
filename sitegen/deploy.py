@@ -10,8 +10,12 @@ from .config import DOCS
 
 def write_manifest() -> None:
     """manifest 是公開可讀的，名稱不能寫行程內容(會在瀏覽器和 repo 裡直接看到)。"""
+    # start_url 用目錄而不是 ./index.html：service worker 在 install 時
+    # 預先快取的是 './'，兩者是不同的網址。寫成 ./index.html 的話，
+    # 從主畫面圖示啟動會要求一個沒被快取的網址，離線時整頁打不開 —
+    # 而離線正是加到主畫面的主要理由。
     (DOCS / "manifest.webmanifest").write_text(json.dumps({
-        "name": "行程", "short_name": "行程", "start_url": "./index.html",
+        "name": "行程", "short_name": "行程", "start_url": "./",
         "display": "standalone", "background_color": "#f3f0e9", "theme_color": "#263c36",
     }, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -35,5 +39,6 @@ def write_sw(plain: str) -> str:
         "self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;"
         "e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{"
         "const cp=res.clone();caches.open(C).then(c=>c.put(e.request,cp));return res;})"
-        ".catch(()=>caches.match('./index.html'))))});\n", encoding="utf-8")
+        # 離線的最後退路要指向真的有被預先快取的那個網址，也就是 './'
+        ".catch(()=>caches.match('./'))))});\n", encoding="utf-8")
     return digest

@@ -6,35 +6,45 @@
  var $=function(s,r){return (r||document).querySelector(s);};
  var $$=function(s,r){return [].slice.call((r||document).querySelectorAll(s));};
 
+ // storage 被封鎖時，連讀 localStorage 這個屬性本身都會丟 SecurityError。
+ // 全部包起來 — 記不住勾選只是每次重來，沒包的話整支 JS 會死在第一次呼叫，
+ // 分頁切不動、圖片不載入、篩選失效，而且畫面上完全沒有徵兆。
+ var ls={
+  get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},
+  set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},
+  del:function(k){try{localStorage.removeItem(k)}catch(e){}},
+  keys:function(){try{var a=[];for(var i=0;i<localStorage.length;i++)a.push(localStorage.key(i));return a}catch(e){return []}}
+ };
+
  // ── 高對比切換 ─────────────────────────────────────────────
- var saved=localStorage.getItem(K+'theme');
+ var saved=ls.get(K+'theme');
  if(saved) root.setAttribute('data-theme',saved);
  $('#themeBtn').onclick=function(){
   var cur=root.getAttribute('data-theme');
   var dark=window.matchMedia('(prefers-color-scheme:dark)').matches;
   var next=cur? (cur==='contrast'?'light':'contrast') : (dark?'light':'contrast');
   root.setAttribute('data-theme',next);
-  localStorage.setItem(K+'theme',next);
+  ls.set(K+'theme',next);
  };
 
  // ── 舊鍵遷移。舊的單檔版用沒有前綴的 item-N，會跟這個網站其他鍵混在一起。
  // 只在新前綴下沒有值時才去補，所以每次載入都跑也無所謂，不需要遷移標記。
  // **不刪舊鍵** — 舊版可能還開在另一台裝置上，刪掉救不回來。
- try{
-  for(var i=0;i<localStorage.length;i++){
-   var k=localStorage.key(i);
-   if(!k||k.indexOf(K)===0||!/^(item|extra)-\d+$/.test(k)) continue;
-   if(localStorage.getItem(K+k)===null) localStorage.setItem(K+k,localStorage.getItem(k));
-  }
- }catch(e){}
+ // 舊檔的鍵是 item-N；新版購物 checkbox 的 id 是 'k'+item-N，
+ // 所以要寫成 sendai2026:kitem-N，少了那個 k 就沒有人讀得到。
+ // 先把鍵名整份抓下來再寫 — 邊列舉邊寫會讓索引位移，漏掉一半。
+ ls.keys().filter(function(k){return /^item-\d+$/.test(k);}).forEach(function(k){
+  var nk=K+'k'+k;
+  if(ls.get(nk)===null){var v=ls.get(k); if(v!==null) ls.set(nk,v);}
+ });
 
  // ── 勾選記錄（行程與購物共用同一套儲存）─────────────────────
  function bindTicks(scope){
   $$('.tick',scope).forEach(function(t){
-   if(localStorage.getItem(K+t.id)==='1') t.checked=true;
+   if(ls.get(K+t.id)==='1') t.checked=true;
    syncItem(t);
    t.addEventListener('change',function(){
-    localStorage.setItem(K+t.id,t.checked?'1':'0');
+    ls.set(K+t.id,t.checked?'1':'0');
     syncItem(t); progress(); shopProgress(); applyFilter();
    });
   });
@@ -68,10 +78,10 @@
  var tabs=$$('.tab'), panes={}, labelSets={};
  $$('.pane').forEach(function(p){panes[p.dataset.pane]=p;});
  $$('.labelset').forEach(function(l){labelSets[l.dataset.for]=l;});
- var current=localStorage.getItem(K+'tab')||'trip';
+ var current=ls.get(K+'tab')||'trip';
  function showTab(name,push){
   current=name;
-  localStorage.setItem(K+'tab',name);
+  ls.set(K+'tab',name);
   tabs.forEach(function(t){t.setAttribute('aria-selected',String(t.dataset.tab===name));});
   Object.keys(panes).forEach(function(k){panes[k].hidden=(k!==name);});
   Object.keys(labelSets).forEach(function(k){labelSets[k].hidden=(k!==name);});
@@ -208,7 +218,7 @@
   var list=$$('.tick',scope);
   if(!list.length) return;
   if(!confirm('清除「'+(shop?'購物':'行程')+'」這一頁的勾選？共 '+list.length+' 項，另一頁不受影響。')) return;
-  list.forEach(function(t){t.checked=false;localStorage.removeItem(K+t.id);syncItem(t);});
+  list.forEach(function(t){t.checked=false;ls.del(K+t.id);syncItem(t);});
   progress(); shopProgress(); applyFilter();
  };
  $('#topBtn').onclick=function(){

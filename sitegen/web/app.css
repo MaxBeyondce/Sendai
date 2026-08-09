@@ -4,8 +4,8 @@
  /* --muted 實測值：#545954 對 --bg 只有 6.29:1。次要文字是戶外強光下
     最先看不見的一層，調到 #4a4f4a 拿到 7.4:1。 */
  --bg:#f3f0e9;--paper:#fffdfa;--ink:#202421;--muted:#4a4f4a;--line:#ddd7cd;
- --accent:#8a5d2c;--accent-ink:#fff;--accent-text:#6b4519;--dark:#263c36;--chip:#fbf8f2;--ok:#2f6b4f;
- --warn:#8c3d1f;--shadow:0 6px 18px #3b302310;--r:16px;--tap:46px;--bar:63px;
+ --accent:#8a5d2c;--accent-ink:#fff;--accent-text:#6b4519;--dark:#263c36;--chip:#fbf8f2;--ok:#2a5f46;
+ --ok-ink:#fff;--warn:#8c3d1f;--shadow:0 6px 18px #3b302310;--r:16px;--tap:46px;--bar:63px;
  /* 字級 8 階。12px 是地板 — 戶外強光下 10px 讀不了。 */
  --fs0:12px;--fs1:13px;--fs2:14px;--fs3:15px;--fs4:17px;--fs5:20px;--fs6:24px;--fs7:30px;
  /* 間距 4px 基準 */
@@ -14,12 +14,12 @@
 :root[data-theme=contrast]{
  --bg:#0d1210;--paper:#161d1a;--ink:#f4f7f4;--muted:#b6c2bb;--line:#33403a;
  --accent:#ffb64d;--accent-ink:#171100;--accent-text:#ffc470;--dark:#0a0f0d;--chip:#1d2622;
- --ok:#57d59a;--warn:#ff9d72;--shadow:none;
+ --ok:#57d59a;--ok-ink:#0d1210;--warn:#ff9d72;--shadow:none;
 }
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){
  --bg:#0d1210;--paper:#161d1a;--ink:#f4f7f4;--muted:#b6c2bb;--line:#33403a;
  --accent:#ffb64d;--accent-ink:#171100;--accent-text:#ffc470;--dark:#0a0f0d;--chip:#1d2622;
- --ok:#57d59a;--warn:#ff9d72;--shadow:none;}}
+ --ok:#57d59a;--ok-ink:#0d1210;--warn:#ff9d72;--shadow:none;}}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);line-height:1.6;font-size:var(--fs3);
  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;
@@ -91,6 +91,8 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 .feature p{color:var(--muted);font-size:var(--fs2)}
 .feature img{width:100%;border-radius:12px;border:1px solid var(--line);margin-top:var(--s3)}
 
+/* .ovsec 也要讓出黏頂列。少了它，按「總覽」跳過去第一張卡的抬頭會被蓋住。 */
+.ovsec{scroll-margin-top:calc(var(--bar) + 11px)}
 .day{margin:var(--s4) 0;overflow:hidden;scroll-margin-top:calc(var(--bar) + 11px)}
 .dhead{padding:var(--s4);border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--chip),transparent)}
 .dtop{display:flex;align-items:center;gap:var(--s2)}
@@ -142,7 +144,7 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
    改成降飽和度，文字維持全對比，另外掛一個實心綠徽章。 */
 .tick:checked~.sbody{filter:saturate(.35)}
 .tick:checked~.sbody .sname::after{content:"已完成";margin-left:var(--s2);vertical-align:2px;
- background:var(--ok);color:#fff;font-size:var(--fs0);font-weight:700;
+ background:var(--ok);color:var(--ok-ink);font-size:var(--fs0);font-weight:700;
  padding:2px 7px;border-radius:999px;white-space:nowrap;filter:saturate(3)}
 .sbody{flex:1;min-width:0}
 .stime{font-size:var(--fs0);letter-spacing:.04em;color:var(--accent-text);font-weight:700}
@@ -161,7 +163,7 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
  border:1px solid var(--line);background:var(--chip);color:var(--muted)}
 .tag.kind{border-color:transparent;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent-text)}
 .tag.when{border-color:transparent;background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn);font-weight:700}
-.tag.state{border-color:transparent;background:var(--ok);color:#fff;font-weight:700}
+.tag.state{border-color:transparent;background:var(--ok);color:var(--ok-ink);font-weight:700}
 .tag.flag{border-style:dashed}
 /* 明確目標另外拉出來，不收進詳細 — 那是到現場要做的事 */
 .goal{margin-top:var(--s2);padding:var(--s2) var(--s3);border-left:3px solid var(--accent);
@@ -181,7 +183,13 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
  border:1px solid var(--line);border-radius:12px;font-size:var(--fs2)}
 .detail .fld{display:flex;gap:var(--s2);padding:5px 0;border-bottom:1px dashed var(--line)}
 .detail .fld:last-of-type{border-bottom:0}
-.detail .fld b{flex:0 0 auto;min-width:4.5em;font-weight:500;color:var(--muted);font-size:var(--fs1)}
+.detail .fld b{flex:0 0 auto;min-width:4.5em;max-width:40%;font-weight:500;color:var(--muted);
+ font-size:var(--fs1);overflow-wrap:anywhere}
+.detail .fld span{min-width:0;overflow-wrap:anywhere}
+/* 子條目：標題獨立成行，長店名照常折行不會撐寬容器 */
+.detail .kid{margin-top:var(--s2);padding-top:var(--s2);border-top:1px dashed var(--line)}
+.detail .kid>b{display:block;font-size:var(--fs1);overflow-wrap:anywhere}
+.detail .kid ul{margin-top:var(--s1)}
 .detail ul{margin:var(--s2) 0 0;padding-left:1.15rem}
 .detail li{margin:var(--s1) 0}
 .detail .sub{margin-top:var(--s2);font-size:var(--fs1);color:var(--muted)}
@@ -193,9 +201,15 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 
 .cluster{margin-top:var(--s3);padding:var(--s3);border:1px solid var(--line);border-radius:12px;background:var(--chip)}
 .clhead{font-size:var(--fs0);color:var(--muted);font-weight:700;margin-bottom:var(--s2)}
-.chips{margin:0;padding-left:1.3rem;display:grid;gap:2px;font-size:var(--fs2)}
-.chips a{display:inline-block;font-weight:500;padding:11px 6px;margin:0 -6px;border-radius:8px}
+.chips{margin:0;padding-left:1.3rem;display:grid;gap:2px;font-size:var(--fs2);min-width:0}
+.chips li{min-width:0;overflow-wrap:anywhere}
+/* 不用負邊界拉齊 — 它會讓連結超出 li 的框，把容器的 scrollWidth 撐寬 6px。
+   少 6px 的對齊換乾淨的框，划算。 */
+.chips a{display:inline-block;font-weight:500;padding:11px 6px;border-radius:8px}
 .cmemo{display:block;color:var(--muted);font-size:var(--fs0)}
+.chips .detail{margin:2px 0 6px}
+.chips .detail>summary{min-height:44px;font-size:var(--fs0)}
+.chips .tags{margin-top:4px}
 .cwarn{margin-left:6px;font-size:var(--fs0);color:var(--warn);font-weight:700}
 
 /* ── 候選手風琴（一次開一個）────────────────────────────────────
@@ -267,7 +281,7 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg>");
  background-size:20px;background-position:center;background-repeat:no-repeat}
 .it.done .ph,.it.done .nm,.it.done .ds{filter:saturate(.3)}
-.it.done .nm::after{content:"已買";margin-left:6px;background:var(--ok);color:#fff;
+.it.done .nm::after{content:"已買";margin-left:6px;background:var(--ok);color:var(--ok-ink);
  font-size:var(--fs0);padding:1px 6px;border-radius:999px;filter:saturate(3)}
 .it[hidden]{display:none}
 .shopstore[hidden]{display:none}

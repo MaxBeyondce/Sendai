@@ -101,8 +101,9 @@ def detail_html(entries: list[dict], children: list[dict] | None = None) -> str:
         b = _body(c)
         if not b:
             continue
-        parts.append(f'<div class="fld"><b>{E(c["title"])}</b><span></span></div>')
-        parts.extend(b)
+        # 子條目自成一個小區塊。不能用 .fld 的標籤欄 — 那一欄是 flex:0 0 auto，
+        # 設計給「角色」這種兩三個字的欄位名，長店名會把整個容器撐出畫面。
+        parts.append(f'<div class="kid"><b>{E(c["title"])}</b>{"".join(b)}</div>')
         n += 1
     if not parts:
         return ""
