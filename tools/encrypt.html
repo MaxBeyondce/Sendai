@@ -40,7 +40,7 @@ code{background:#efe9df;padding:1px 5px;border-radius:5px;font-size:.85em}
   <div class="row">
     <label for="f">1. 選擇要加密的行程檔</label>
     <input type="file" id="f" accept=".html,.htm">
-    <p class="hint" id="fh">選 <code>index_mobile.html</code>(完整版)。</p>
+    <p class="hint" id="fh">選 <code>build/public_plain.html</code>。兩份內容一樣，但只有這一份掛了 manifest。</p>
   </div>
   <div class="row">
     <label for="p1">2. 設定密碼</label>
@@ -136,7 +136,7 @@ $('go').addEventListener('click', async () => {
     const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(fileText));
     const payload = { v: 1, iter: ITER, salt: b64(salt), iv: b64(iv), ct: b64(ct) };
     log('明文 ' + Math.round(fileText.length / 1024) + ' KB → 密文 ' + Math.round(payload.ct.length / 1024) + ' KB');
-    const out = SHELL.replace('__PAYLOAD__', JSON.stringify(payload));
+    const out = SHELL.replace('__PAYLOAD__', () => JSON.stringify(payload));
     const blob = new Blob([out], { type: 'text/html' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = 'index.html'; a.click();
@@ -179,10 +179,17 @@ html.auto .loading{display:block}
 <div class="err" id="err"></div></div></div>
 <script>
 const P=__PAYLOAD__;
-const d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const d=s=>{const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;};
 const K='sendai2026:key';
+// localStorage 在無痕模式或 storage 被封鎖時會丟例外。全部包起來 —
+// 記不住金鑰只是每次要重打密碼，但沒包的話例外會讓整個解鎖功能失效。
+const ls={
+ get(k){try{return localStorage.getItem(k)}catch(_){return null}},
+ set(k,v){try{localStorage.setItem(k,v)}catch(_){}},
+ del(k){try{localStorage.removeItem(k)}catch(_){}}
+};
 // 記住金鑰時先把表單藏起來顯示「解鎖中」，避免閃一下密碼框
-if(localStorage.getItem(K))document.documentElement.classList.add('auto');
+if(ls.get(K))document.documentElement.classList.add('auto');
 async function derive(pw){
  const b=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
  return crypto.subtle.deriveKey({name:'PBKDF2',salt:d(P.salt),iterations:P.iter,hash:'SHA-256'},
@@ -194,9 +201,9 @@ async function open_(key){
  // 不用 document.write：它在不同時機的行為不一致，實測會把解密內容併進鎖定頁而不是取代。
  // 改成直接換掉 documentElement，行為明確。
  const doc=new DOMParser().parseFromString(html,'text/html');
- document.replaceChild(document.importNode(doc.documentElement,true),document.documentElement);
+ document.replaceChild(document.adoptNode(doc.documentElement),document.documentElement);
  // DOMParser 產生的 script 不會執行，逐一重建才會跑
- document.querySelectorAll('script').forEach(function(old){
+ document.querySelectorAll('script:not([type="application/json"])').forEach(function(old){
   const s=document.createElement('script');
   for(const a of old.attributes)s.setAttribute(a.name,a.value);
   s.textContent=old.textContent;
@@ -210,12 +217,12 @@ document.getElementById('go').onclick=async()=>{
   const key=await derive(document.getElementById('pw').value);
   if(document.getElementById('rem').checked){
    const raw=await crypto.subtle.exportKey('raw',key);
-   localStorage.setItem(K,btoa(String.fromCharCode(...new Uint8Array(raw))));
+   ls.set(K,btoa(String.fromCharCode(...new Uint8Array(raw))));
   }
   await open_(key);
  }catch(_){
   e.textContent='密碼不對';btn.disabled=false;btn.textContent='開啟';
-  localStorage.removeItem(K);
+  ls.del(K);
  }
 };
 document.getElementById('pw').addEventListener('keydown',ev=>{if(ev.key==='Enter')document.getElementById('go').click();});
@@ -227,13 +234,13 @@ if(location.protocol==='https:'&&'serviceWorker'in navigator){
 // 必須等 load：文件還在解析時呼叫 document.write 會把解密內容併進現有頁面，
 // 而不是取代它，結果密碼框和行程會同時出現。
 window.addEventListener('load',async()=>{
- const s=localStorage.getItem(K);
+ const s=ls.get(K);
  if(!s)return;
  try{
   const key=await crypto.subtle.importKey('raw',d(s),{name:'AES-GCM'},true,['decrypt']);
   await open_(key);
  }catch(_){
-  localStorage.removeItem(K);
+  ls.del(K);
   document.documentElement.classList.remove('auto');
  }
 });

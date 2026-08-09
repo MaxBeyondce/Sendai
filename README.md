@@ -29,13 +29,16 @@ docs/                 GitHub Pages 目錄(加密後的 index.html / sw.js / mani
 python build.py
 ```
 
-會產生兩份：本機保留的完整版，以及待加密的明文版（在 `build/`，已排除）。
+會產生兩份，**內容完全一樣**：本機直接開的單檔版，以及待加密的明文版
+（在 `build/public_plain.html`，已排除）。差別只有掛不掛 manifest。
+個資兩份都不寫，跑同一套遮蔽與同一套掃描，任何一份掃不過就中止不寫檔。
+
 **不會動到 `docs/index.html`** — 那是加密後的成品，避免重跑時被蓋成明文。
 
 ## 加密後才發布
 
 1. 瀏覽器開 `tools/encrypt.html`
-2. 選要加密的檔案，設密碼
+2. 選 **`build/public_plain.html`**，設密碼
 3. 下載到的 `index.html` 覆蓋 `docs/index.html`，然後 push
 
 加密在自己的瀏覽器裡完成，**密碼不會經過任何伺服器，也不寫進任何檔案**。
