@@ -12,10 +12,17 @@ MIME = {".webp": "image/webp", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
 
 
 def data_uri(rel: str | None) -> str:
-    """assets/ 底下的檔案轉成 data URI；檔案不在就回空字串，由呼叫端決定要不要留位。"""
+    """assets/ 底下的檔案轉成 data URI；檔案不在就回空字串，由呼叫端決定要不要留位。
+
+    同名的 .webp 存在時優先用它。資料檔是機器抽出來的原貌，不手改 —
+    改壓縮格式不該去動資料，在這裡挑就好。
+    """
     if not rel:
         return ""
     p = ASSETS / rel
+    webp = p.with_suffix(".webp")
+    if webp.exists():
+        p = webp
     if not p.exists():
         return ""
     mime = MIME.get(p.suffix.lower(), "application/octet-stream")

@@ -9,6 +9,7 @@ from ..assets import data_uri, read_web
 from ..data import DATA, day_map
 from ..maps import search_url
 from .. import redact
+from . import shopping
 from .itinerary import day_section
 from .text import E
 
@@ -49,13 +50,26 @@ def hero() -> str:
     return "".join(p)
 
 
-def daybar() -> str:
-    p = ['<nav class="daybar" id="daybar"><div class="dbin">']
+def topbar() -> str:
+    """一條列，不是兩條。
+
+    兩條(63+48)在 375×812 的 Safari 裡會吃掉約 16% 的可用高度，所以
+    分頁鈕與標籤列併在同一條 63px：左邊分頁固定，右邊標籤隨分頁換內容。
+    購物的店家篩選就這樣白拿到，也保證它不會變成第三條列。
+    """
+    p = ['<nav class="topbar" id="topbar">']
+    p.append('<div class="tabs" role="tablist">'
+             '<button class="tab" role="tab" data-tab="trip" aria-selected="true">行程<i class="dot"></i></button>'
+             '<button class="tab" role="tab" data-tab="shop" aria-selected="false">購物<i class="dot"></i></button>'
+             "</div>")
+    p.append('<div class="labels"><div class="labelset" data-for="trip">')
     p.append('<button class="dbtn today" data-go="today">今天</button>')
     for d in DATA["days"]:
         p.append(f'<button class="dbtn" data-go="{d["id"]}" data-date="{E(d["date"])}">'
                  f'{d["id"]}<em>{E(d["date"].split("（")[0])}</em></button>')
     p.append('<button class="dbtn" data-go="overview">總覽</button>')
+    p.append("</div>")
+    p.append(shopping.labels_html())
     p.append("</div></nav>")
     return "".join(p)
 
@@ -63,14 +77,18 @@ def daybar() -> str:
 def build_html(standalone: bool) -> str:
     """standalone=True 為本機單檔版(不掛 manifest)；False 為要加密發布的版本。
     內容不因這個旗標而不同 — 個資兩份都不寫。"""
-    p = [hero(), daybar(), "<main>", overview()]
+    p = [hero(), topbar(), "<main>"]
+    p.append('<section class="pane" data-pane="trip">')
+    p.append(overview())
     for d in DATA["days"]:
         p.append(day_section(d))
     p.append(f'<p class="foot">{E(DATA["footer"])}</p>')
+    p.append("</section>")
+    p.append(shopping.pane_html())
     p.append("</main>")
     p.append('<div class="toolbar">'
              '<button id="themeBtn" title="切換高對比">◐</button>'
-             '<button id="clearBtn" title="清除全部勾選">↺</button>'
+             '<button id="clearBtn" title="清除這一頁的勾選">↺</button>'
              '<button id="topBtn" title="回頂部">↑</button></div>')
 
     body = redact.apply("".join(p))

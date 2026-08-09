@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from urllib.parse import unquote
 
-from ..data import cluster_for
+from ..data import PLACES, cluster_for
 from ..maps import search_url
+from .detail import detail_html, goal_html, names_html, parking_buttons, tags_html
+from .plans import candidates, picks_html
 from .routes import route_block, day_routes
+from .shopping import stores_by_day
 from .text import E
 
 # verified 的顯示對照。空字串代表不顯示警示 — 只有查不到位置的才需要提醒。
@@ -14,17 +17,26 @@ VER_LABEL = {"address": "", "route": "", "place_id": "", "coords": "",
              "review": "", "inferred": "位置待確認"}
 
 
-def stop_html(day_id: str, idx: int, s: dict) -> str:
+def stop_html(day_id: str, idx: int, s: dict, want_parking: bool) -> str:
     sid = f"{day_id}-{idx}"
     place = s.get("place") or {}
-    out = [f'<li class="stop" id="s{sid}">']
+    entries = s.get("guide") or []
+    picks, _ = candidates(s)
+    # 有候選的站，說明歸各候選自己，不重複放在卡片層
+    own = [] if picks else entries
+
+    tg, optional = tags_html(own)
+    out = [f'<li class="stop{" optional" if optional else ""}" id="s{sid}">']
     out.append(f'<input type="checkbox" class="tick" id="t{sid}" aria-label="標記已完成">')
     out.append(f'<label class="tickbox" for="t{sid}"></label>')
     out.append('<div class="sbody">')
     out.append(f'<div class="stime">{E(s["time"])}</div>')
-    out.append(f'<h3 class="sname">{E(s["name"])}</h3>')
+    out.append(names_html(place if not picks else None, s["name"]))
+    out.append(tg)
+    out.append(goal_html(own))
     if s.get("memo"):
         out.append(f'<p class="smemo">{E(s["memo"])}</p>')
+    out.append(detail_html(own))
 
     if s.get("parking"):
         out.append('<div class="parks">')
@@ -50,14 +62,32 @@ def stop_html(day_id: str, idx: int, s: dict) -> str:
         out.append(route_block(cl["stops"], cl["mode"], cl["label"], cl.get("note", "")))
         out.append("</div>")
 
-    if s.get("query"):
-        out.append(f'<div class="actions"><a class="gbtn" href="{E(search_url(unquote(s["query"]), place))}" '
-                   f'target="_blank" rel="noopener">導航到這裡</a></div>')
+    out.append(picks_html(s, want_parking, PLACES))
+
+    if s.get("query") and not picks:
+        out.append('<div class="actions">')
+        out.append(f'<a class="gbtn" href="{E(search_url(unquote(s["query"]), place))}" '
+                   f'target="_blank" rel="noopener">導航到這裡</a>')
+        out.append(parking_buttons(place))
+        out.append("</div>")
     out.append("</div></li>")
     return "".join(out)
 
 
+def shop_hint(day_id: str) -> str:
+    """今天會經過哪些購物清單上的店。點一下切到購物分頁並篩選到那一家。"""
+    stores = stores_by_day().get(day_id) or []
+    if not stores:
+        return ""
+    links = "、".join(
+        f'<a href="#store-{E(s["id"])}" data-shopjump="{E(s["id"])}">{E(s.get("short") or s["name"])}</a>'
+        for s in stores)
+    return f'<p class="stay">🛒 今天會經過｜{links}</p>'
+
+
 def day_section(d: dict) -> str:
+    # 沒有車的日子不給停車按鈕 — 那天的移動是走路與大眾運輸
+    want_parking = d.get("drive", True)
     p = [f'<section class="day" id="{d["id"]}" data-date="{E(d["date"])}">']
     p.append(f'<div class="dhead"><div class="dtop"><span class="badge">{d["id"]}</span>'
              f'<span class="date">{E(d["date"])}</span></div>')
@@ -66,6 +96,7 @@ def day_section(d: dict) -> str:
         p.append(f'<p class="anchor">{E(d["anchor"])}</p>')
     if d.get("stay") and d["stay"] != "—":
         p.append(f'<p class="stay">住宿｜<b>{E(d["stay"])}</b></p>')
+    p.append(shop_hint(d["id"]))
     p.append('<div class="prog"><span class="bar"><i></i></span><span class="ptxt"></span></div>')
     p.append("</div>")
 
@@ -75,7 +106,7 @@ def day_section(d: dict) -> str:
 
     p.append('<ol class="stops">')
     for i, s in enumerate(d["stops"]):
-        p.append(stop_html(d["id"], i, s))
+        p.append(stop_html(d["id"], i, s, want_parking))
     p.append("</ol>")
 
     if d.get("notes"):

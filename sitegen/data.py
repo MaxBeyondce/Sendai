@@ -37,6 +37,9 @@ CLUSTERS = _load("clusters.json", "clusters")
 PLACES = (_load("places.json", "places", required=False) or {})
 GUIDE = (_load("guide.json", required=False) or {}).get("entries", [])
 SHOPPING = _load("shopping.json", required=False)
+# 明確標成「挑一家」的站。自動規則看標題有沒有候選／可選之類的字，
+# 抓不到的(站名只用／把兩家串起來)在這裡指定 — 猜錯的代價是讓人以為只能選一家。
+CHOICE_STOPS = set((_load("guide_overrides.json", required=False) or {}).get("choice", []))
 
 
 def norm(s: str) -> str:
@@ -66,8 +69,22 @@ def _guide_by_target() -> dict[str, list[dict]]:
     return out
 
 
+def _guide_children() -> dict[int, list[dict]]:
+    """parent 是 md 上的行號；子條目掛在父條目底下(群組成員、子序號)。"""
+    out: dict[int, list[dict]] = {}
+    for e in GUIDE:
+        if e.get("parent"):
+            out.setdefault(e["parent"], []).append(e)
+    return out
+
+
 PLACE_INDEX = _place_index()
 GUIDE_BY_TARGET = _guide_by_target()
+GUIDE_CHILDREN = _guide_children()
+
+
+def children_of(entry: dict) -> list[dict]:
+    return GUIDE_CHILDREN.get(entry.get("src", {}).get("line"), [])
 
 
 def place_for(*names: str) -> dict | None:
@@ -88,7 +105,8 @@ def attach() -> None:
     """
     for d in DATA["days"]:
         for i, s in enumerate(d["stops"]):
-            entries = GUIDE_BY_TARGET.get(f"{d['id']}/stop/{i}", [])
+            s["key"] = f"{d['id']}/stop/{i}"
+            entries = GUIDE_BY_TARGET.get(s["key"], [])
             pl = None
             if entries:
                 pl = PLACES.get(entries[0].get("id"))
