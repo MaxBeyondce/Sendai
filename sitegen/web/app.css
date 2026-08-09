@@ -1,8 +1,10 @@
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
- --bg:#f3f0e9;--paper:#fffdfa;--ink:#202421;--muted:#545954;--line:#ddd7cd;
- --accent:#8a5d2c;--accent-ink:#fff;--dark:#263c36;--chip:#fbf8f2;--ok:#2f6b4f;
+ /* --muted 實測值：#545954 對 --bg 只有 6.29:1。次要文字是戶外強光下
+    最先看不見的一層，調到 #4a4f4a 拿到 7.4:1。 */
+ --bg:#f3f0e9;--paper:#fffdfa;--ink:#202421;--muted:#4a4f4a;--line:#ddd7cd;
+ --accent:#8a5d2c;--accent-ink:#fff;--accent-text:#6b4519;--dark:#263c36;--chip:#fbf8f2;--ok:#2f6b4f;
  --warn:#8c3d1f;--shadow:0 6px 18px #3b302310;--r:16px;--tap:46px;--bar:63px;
  /* 字級 8 階。12px 是地板 — 戶外強光下 10px 讀不了。 */
  --fs0:12px;--fs1:13px;--fs2:14px;--fs3:15px;--fs4:17px;--fs5:20px;--fs6:24px;--fs7:30px;
@@ -11,13 +13,13 @@
 }
 :root[data-theme=contrast]{
  --bg:#0d1210;--paper:#161d1a;--ink:#f4f7f4;--muted:#b6c2bb;--line:#33403a;
- --accent:#ffb64d;--accent-ink:#171100;--dark:#0a0f0d;--chip:#1d2622;--ok:#57d59a;
- --warn:#ff9d72;--shadow:none;
+ --accent:#ffb64d;--accent-ink:#171100;--accent-text:#ffc470;--dark:#0a0f0d;--chip:#1d2622;
+ --ok:#57d59a;--warn:#ff9d72;--shadow:none;
 }
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){
  --bg:#0d1210;--paper:#161d1a;--ink:#f4f7f4;--muted:#b6c2bb;--line:#33403a;
- --accent:#ffb64d;--accent-ink:#171100;--dark:#0a0f0d;--chip:#1d2622;--ok:#57d59a;
- --warn:#ff9d72;--shadow:none;}}
+ --accent:#ffb64d;--accent-ink:#171100;--accent-text:#ffc470;--dark:#0a0f0d;--chip:#1d2622;
+ --ok:#57d59a;--warn:#ff9d72;--shadow:none;}}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);line-height:1.6;font-size:var(--fs3);
  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;
@@ -66,7 +68,7 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 .cards{display:grid;gap:var(--s3)}
 .card,.day,.feature{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
 .card{padding:var(--s4)}
-.kicker{font-size:var(--fs0);letter-spacing:.14em;font-weight:700;color:var(--accent)}
+.kicker{font-size:var(--fs0);letter-spacing:.14em;font-weight:700;color:var(--accent-text)}
 .card h2{margin:var(--s1) 0 var(--s3);font-size:var(--fs4)}
 .rows div{padding:7px 0;border-bottom:1px dashed var(--line)}
 .rows div:last-child{border:0}
@@ -78,7 +80,7 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 .feature{margin-top:var(--s3);padding:var(--s3) var(--s4)}
 .feature summary{display:flex;flex-direction:column;gap:2px;cursor:pointer;min-height:var(--tap);justify-content:center}
 .feature summary strong{font-size:var(--fs3)}
-.feature .tap{font-size:var(--fs1);color:var(--accent);font-weight:700}
+.feature .tap{font-size:var(--fs1);color:var(--accent-text);font-weight:700}
 .feature p{color:var(--muted);font-size:var(--fs2)}
 .feature img{width:100%;border-radius:12px;border:1px solid var(--line);margin-top:var(--s3)}
 
@@ -99,7 +101,7 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 .routegrp+.routegrp{margin-top:var(--s3);padding-top:var(--s3);border-top:1px dashed var(--line)}
 .branch{border:2px solid var(--accent);border-radius:12px;padding:var(--s3);background:var(--paper)}
 .brhead{display:flex;flex-direction:column;gap:2px;margin-bottom:var(--s3);
- font-size:var(--fs2);font-weight:700;color:var(--accent)}
+ font-size:var(--fs2);font-weight:700;color:var(--accent-text)}
 .brhead span{font-weight:400;font-size:var(--fs0);color:var(--muted)}
 .routelabel{display:flex;align-items:center;gap:var(--s2);font-weight:700;font-size:var(--fs2);margin-bottom:var(--s2)}
 .routelabel .cnt{font-weight:400;font-size:var(--fs0);color:var(--muted)}
@@ -132,7 +134,7 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
  background:var(--ok);color:#fff;font-size:var(--fs0);font-weight:700;
  padding:2px 7px;border-radius:999px;white-space:nowrap;filter:saturate(3)}
 .sbody{flex:1;min-width:0}
-.stime{font-size:var(--fs0);letter-spacing:.04em;color:var(--accent);font-weight:700}
+.stime{font-size:var(--fs0);letter-spacing:.04em;color:var(--accent-text);font-weight:700}
 
 /* 站點名稱三行：日文原名為主標，中文與英文發音為次行。
    正規化後與主標相同的就不輸出次行，省掉整排重複的字。 */
@@ -146,7 +148,7 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--s2)}
 .tag{font-size:var(--fs0);font-weight:500;padding:3px 9px;border-radius:999px;
  border:1px solid var(--line);background:var(--chip);color:var(--muted)}
-.tag.kind{border-color:transparent;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
+.tag.kind{border-color:transparent;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent-text)}
 .tag.when{border-color:transparent;background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn);font-weight:700}
 .tag.state{border-color:transparent;background:var(--ok);color:#fff;font-weight:700}
 .tag.flag{border-style:dashed}
@@ -160,7 +162,7 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 .detail{margin-top:var(--s2)}
 .detail>summary{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 var(--s3);
  border:1px solid var(--line);border-radius:999px;background:var(--paper);
- font-size:var(--fs1);font-weight:700;color:var(--accent);cursor:pointer;list-style:none}
+ font-size:var(--fs1);font-weight:700;color:var(--accent-text);cursor:pointer;list-style:none}
 .detail>summary::-webkit-details-marker{display:none}
 .detail>summary::after{content:"▾";font-size:var(--fs0)}
 .detail[open]>summary::after{content:"▴"}
@@ -236,7 +238,7 @@ main{max-width:900px;margin:auto;padding:var(--s3) var(--s3) 90px}
 .shopstore>header{padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);
  background:linear-gradient(180deg,var(--chip),transparent)}
 .shopstore h2{margin:0;font-size:var(--fs4);display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap}
-.shopstore .days{font-size:var(--fs0);font-weight:400;color:var(--accent)}
+.shopstore .days{font-size:var(--fs0);font-weight:400;color:var(--accent-text)}
 .shopstore .days a{text-decoration:none;border-bottom:1px dotted currentColor}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--s3);padding:var(--s3)}
 .it{position:relative;display:flex;flex-direction:column;gap:6px;
