@@ -50,8 +50,15 @@ b,strong{font-weight:700}
 .tab .dot{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;
  background:var(--accent);display:none}
 .tab.filtered .dot{display:block}
-.labels{flex:1 1 auto;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:var(--s2) 0}
+/* 兩層都要是 flex。按鈕的父層是 .labelset 不是 .labels，
+   只設 .labels 的話按鈕會照區塊往下堆成一直排。 */
+.labels{flex:1 1 auto;min-width:0;display:flex;align-items:center;
+ overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
 .labels::-webkit-scrollbar{display:none}
+.labelset{display:flex;gap:6px;align-items:center;padding:var(--s2) 0}
+/* 這一行不能省：上面的 display:flex 比瀏覽器預設的 [hidden]{display:none}
+   優先，沒有它兩組標籤會同時出現。 */
+.labelset[hidden]{display:none}
 .dbtn{flex:0 0 auto;min-height:var(--tap);min-width:56px;display:flex;flex-direction:column;
  align-items:center;justify-content:center;gap:1px;border:1px solid var(--line);background:var(--paper);
  color:var(--ink);border-radius:12px;padding:5px 11px;font-weight:700;font-size:var(--fs2);
