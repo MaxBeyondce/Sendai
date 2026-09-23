@@ -3,20 +3,23 @@
 原始檔是機器產生的規則標記，用 regex 解析即可，不引入額外套件。
 執行後產出的 trip_data.json 需要人工核對。
 產出物都在 .gitignore 內，不進公開 repo。
+
+  python extract.py                              讀 H:\\我的雲端硬碟\\index.html，寫到 repo 根目錄(現況)
+  python extract.py <來源 html>                   指定來源檔
+  python extract.py <來源 html> --out-dir trips/x  寫到某個行程資料夾(配合 new_trip.py 建的骨架)
 """
 
 from __future__ import annotations
 
+import argparse
 import base64
 import html
 import json
 import re
 from pathlib import Path
 
-SRC = Path(r"H:\我的雲端硬碟\index.html")
 ROOT = Path(__file__).parent
-OUT_JSON = ROOT / "trip_data.json"
-ASSETS = ROOT / "assets"
+_DEFAULT_SRC = Path(r"H:\我的雲端硬碟\index.html")
 
 B64_RE = re.compile(r"data:image/(?P<ext>[a-z]+);base64,(?P<data>[A-Za-z0-9+/=]+)")
 TAG_RE = re.compile(r"<[^>]+>")
@@ -67,20 +70,35 @@ def parse_multi_map(cell: str) -> list[dict]:
     return subs
 
 
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="一次性抽取工具：原始 index.html -> trip_data.json + assets/")
+    p.add_argument("src", nargs="?", default=str(_DEFAULT_SRC),
+                   help=f"來源 HTML 路徑；不給就用現況預設值 {_DEFAULT_SRC}")
+    p.add_argument("--out-dir", default=None,
+                   help="trip_data.json 與 assets/ 的輸出資料夾；不給就是這一檔所在資料夾(現況)")
+    return p.parse_args()
+
+
 def main() -> None:
-    raw = SRC.read_text(encoding="utf-8")
+    args = parse_args()
+    src = Path(args.src)
+    out_dir = Path(args.out_dir).resolve() if args.out_dir else ROOT
+    out_json = out_dir / "trip_data.json"
+    assets_dir = out_dir / "assets"
+
+    raw = src.read_text(encoding="utf-8")
 
     # 1) 抽出內嵌圖片另存，json 只記檔名
-    ASSETS.mkdir(exist_ok=True)
+    assets_dir.mkdir(parents=True, exist_ok=True)
     image_file = None
     m = B64_RE.search(raw)
     if m:
         ext = "jpg" if m.group("ext") == "jpeg" else m.group("ext")
         image_file = f"trail_map.{ext}"
-        (ASSETS / image_file).write_bytes(base64.b64decode(m.group("data")))
+        (assets_dir / image_file).write_bytes(base64.b64decode(m.group("data")))
     stripped = B64_RE.sub("__IMG__", raw)
 
-    doc: dict = {"source": str(SRC), "image": image_file}
+    doc: dict = {"source": str(src), "image": image_file}
 
     # 2) 抬頭
     title = re.search(r"<title>(.*?)</title>", stripped, re.S)
@@ -157,13 +175,13 @@ def main() -> None:
 
     doc["footer"] = text_of(re.search(r'<p style="text-align:center[^"]*">(.*?)</p>', stripped, re.S).group(1))
 
-    OUT_JSON.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_json.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
 
     total = sum(len(d["stops"]) for d in doc["days"])
     subs = sum(len(s["sub_stops"]) for d in doc["days"] for s in d["stops"])
     parks = sum(len(s["parking"]) for d in doc["days"] for s in d["stops"])
     print(f"days={len(doc['days'])} stops={total} sub_stops={subs} parking={parks} cards={len(doc['cards'])}")
-    print(f"image -> assets/{image_file} ({(ASSETS / image_file).stat().st_size // 1024} KB)")
+    print(f"image -> assets/{image_file} ({(assets_dir / image_file).stat().st_size // 1024} KB)")
     for d in doc["days"]:
         missing = [s["name"] for s in d["stops"] if not s["query"]]
         print(f"  {d['id']} {d['date']:<12} stops={len(d['stops']):<3} 無連結={len(missing)} {missing[:3]}")

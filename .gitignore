@@ -33,6 +33,10 @@ guide_overrides.json
 shopping.json
 shopping_overrides.json
 
+# 每一趟行程的資料夾(trips/<name>/)。跟根目錄那份 Sendai 資料同理 —
+# 這是資料不是設定，任何一趟行程的內容都不能進公開 repo。
+trips/
+
 # 一般
 __pycache__/
 *.pyc
