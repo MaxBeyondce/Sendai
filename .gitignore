@@ -43,3 +43,7 @@ __pycache__/
 .venv/
 .DS_Store
 .claude/
+
+# 金鑰與帳密（預防）
+.env
+.env.*
